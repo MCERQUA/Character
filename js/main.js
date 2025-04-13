@@ -158,7 +158,7 @@ async function importAnimationsAndModel(model) {
 // Import Animations
 async function importAnimations(animation) {
     try {
-        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/animations" + animation, null, scene);
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "./resources/models/animations" + animation, null, scene);
         
         // Clean up meshes
         result.meshes.forEach(element => {
@@ -186,7 +186,7 @@ async function importAnimations(animation) {
 // Import Model
 function importModel(model) {
     try {
-        return BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/" + model, null, scene)
+        return BABYLON.SceneLoader.ImportMeshAsync(null, "./resources/models/" + model, null, scene)
             .then((result) => {
                 try {
                     player = result.meshes[0];
