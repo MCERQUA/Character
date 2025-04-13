@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="mobile-web-app-capable" content="yes">
     <title>BJS App</title>
     <!-- Main StyleSheet -->
     <link rel="stylesheet" href="./css/main.css?id=8">
@@ -27,10 +27,11 @@
     <!-- BabylonJS Render Canvas -->
     <canvas id="renderCanvas"></canvas>
 
-    <!-- JS Libraries -->
-    <script src="./node_modules/babylonjs/babylon.js"></script> 
-    <script src="./node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script> 
-    <script src="./node_modules/pepjs/dist/pep.js"></script>
+    <!-- BabylonJS Dependencies -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pepjs/0.4.3/pep.min.js"></script>
+
     <!-- JS Main App -->
     <script src="./js/main.js?id=8"></script>
     <button id="customBT" type="button" class="btn btn-outline-info" onclick="randomAnimation()">RANDOM ANIMATION</button>

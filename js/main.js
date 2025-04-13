@@ -1,14 +1,25 @@
-// On Document Loaded - Start Game //
-document.addEventListener("DOMContentLoaded", startGame);
+// Using global BABYLON from CDN script
+
+// On Document Loaded - Initialize Babylon then Start Game //
+const BABYLON = window.BABYLON;
+
+document.addEventListener("DOMContentLoaded", () => {
+    initBabylon();
+    startGame();
+});
 
 // Global BabylonJS Variables
-var canvas = document.getElementById("renderCanvas");
-var engine = new BABYLON.Engine(canvas, true, { stencil: false }, true);
-var scene = createScene(engine, canvas);
-var camera = new BABYLON.ArcRotateCamera("camera", BABYLON.Tools.ToRadians(-90), BABYLON.Tools.ToRadians(65), 6, BABYLON.Vector3.Zero(), scene);
-var dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(0,0,0), scene);
-var hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
-var shadowGenerator = new BABYLON.ShadowGenerator(2048, dirLight, true);
+let canvas, engine, scene, camera, dirLight, hemiLight, shadowGenerator, hdrSkybox;
+
+function initBabylon() {
+    canvas = document.getElementById("renderCanvas");
+    engine = new BABYLON.Engine(canvas, true, { stencil: false }, true);
+    scene = createScene(engine, canvas);
+    camera = new BABYLON.ArcRotateCamera("camera", BABYLON.Tools.ToRadians(-90), BABYLON.Tools.ToRadians(65), 6, BABYLON.Vector3.Zero(), scene);
+    dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(0,0,0), scene);
+    hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+    shadowGenerator = new BABYLON.ShadowGenerator(2048, dirLight, true);
+}
 
 var ground;
 var hdrTexture;
@@ -18,10 +29,8 @@ var currentAnimation;
 
 // Create Scene
 function createScene(engine, canvas) {
-    // Set Canvas & Engine //
-    canvas = document.getElementById("renderCanvas");
-    engine.clear(new BABYLON.Color3(0, 0, 0), true, true);
     var scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0);
     return scene;
 }
 
@@ -55,8 +64,14 @@ function startGame() {
     ground.material = groundMat;
     ground.receiveShadows = true;
 
-    setLighting();    
-    importAnimationsAndModel("readyplayer2.glb");
+    // Load environment first, then model
+    loadEnvironment().then(() => {
+        importAnimationsAndModel("readyplayer2.glb");
+    }).catch(error => {
+        console.error("Failed to load environment:", error);
+        // Load model even if environment fails
+        importAnimationsAndModel("readyplayer2.glb");
+    });
 
     // scene.debugLayer.show({embedMode: true}).then(function () {
     // });
@@ -87,63 +102,122 @@ var player;
 var animationsGLB = [];
 // Import Animations and Models
 async function importAnimationsAndModel(model) {
-    await importAnimations("/masculine/idle/M_Standing_Idle_Variations_002.glb");
-    for (let index = 0; index < 9; index++) {
-      var int = index + 1;
-      await importAnimations("/masculine/dance/M_Dances_00" + int + ".glb");
+    try {
+        // Load base idle animation
+        await importAnimations("/masculine/idle/M_Standing_Idle_Variations_002.glb").catch(error => {
+            console.error("Error loading idle animation:", error);
+        });
+
+        // Load dance animations
+        for (let index = 0; index < 9; index++) {
+            try {
+                const int = index + 1;
+                await importAnimations("/masculine/dance/M_Dances_00" + int + ".glb");
+            } catch (error) {
+                console.error(`Error loading dance animation ${index + 1}:`, error);
+            }
+        }
+
+        // Load expression animations
+        for (let index = 5; index < 9; index++) {
+            try {
+                const int = index + 1;
+                await importAnimations("/masculine/expression/M_Standing_Expressions_00" + int + ".glb");
+            } catch (error) {
+                console.error(`Error loading expression animation ${index + 1}:`, error);
+            }
+        }
+
+        // Import model after animations are loaded
+        await importModel(model);
+    } catch (error) {
+        console.error("Critical error in importAnimationsAndModel:", error);
+        hideLoadingView(); // Ensure loading screen is hidden even if everything fails
     }
-    for (let index = 5; index < 9; index++) {
-        var int = index + 1;
-        await importAnimations("/masculine/expression/M_Standing_Expressions_00" + int + ".glb");
-      }
-    importModel(model);
 }
 
-
 // Import Animations
-function importAnimations(animation) {
-
-    return BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/animations" + animation, null, scene)
-      .then((result) => {
+async function importAnimations(animation) {
+    try {
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/animations" + animation, null, scene);
+        
+        // Clean up meshes
         result.meshes.forEach(element => {
-            if (element)
-                element.dispose();  
+            if (element) {
+                try {
+                    element.dispose();
+                } catch (error) {
+                    console.error("Error disposing mesh:", error);
+                }
+            }
         });
-        animationsGLB.push(result.animationGroups[0]);
-    });
+
+        // Store animation group
+        if (result.animationGroups && result.animationGroups[0]) {
+            animationsGLB.push(result.animationGroups[0]);
+        } else {
+            console.warn("No animation groups found in:", animation);
+        }
+    } catch (error) {
+        console.error("Error importing animation:", animation, error);
+        throw error; // Propagate error for handling in importAnimationsAndModel
+    }
 }
   
 // Import Model
 function importModel(model) {
+    try {
+        return BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/" + model, null, scene)
+            .then((result) => {
+                try {
+                    player = result.meshes[0];
+                    player.name = "Character";
 
-    BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/" + model, null, scene)
-      .then((result) => {
+                    var modelTransformNodes = player.getChildTransformNodes();
+                    
+                    // Clone animations with error handling
+                    animationsGLB.forEach((animation) => {
+                        try {
+                            const modelAnimationGroup = animation.clone(
+                                model.replace(".glb", "_") + animation.name,
+                                (oldTarget) => modelTransformNodes.find((node) => node.name === oldTarget.name)
+                            );
+                            animation.dispose();
+                        } catch (error) {
+                            console.error("Error cloning animation:", error);
+                        }
+                    });
+                    animationsGLB = [];
 
-        player = result.meshes[0];
-        player.name = "Character";
+                    // Apply materials and shadows after model is loaded
+                    if (hdrTexture) {
+                        setReflections();
+                    }
+                    setShadows();
 
-        var modelTransformNodes = player.getChildTransformNodes();
-        
-        animationsGLB.forEach((animation) => {
-          const modelAnimationGroup = animation.clone(model.replace(".glb", "_") + animation.name, (oldTarget) => {
-            return modelTransformNodes.find((node) => node.name === oldTarget.name);
-          });
-          animation.dispose();
-        });
-        animationsGLB = [];
+                    // Start animation if available
+                    if (scene.animationGroups && scene.animationGroups.length > 0) {
+                        scene.animationGroups[0].play(true, 1.0);
+                        document.getElementById("info-text").innerHTML = "Current Animation<br>" + scene.animationGroups[0].name;
+                        currentAnimation = scene.animationGroups[0];
+                    } else {
+                        console.warn("No animation groups available");
+                    }
 
-        // Merge Meshes
-        
-        setReflections();
-        setShadows();
-        scene.animationGroups[0].play(true, 1.0);
-        console.log("Animations: " + scene.animationGroups);
-        console.log("Animations: " + scene.animationGroups.length);
-        document.getElementById("info-text").innerHTML = "Current Animation<br>" + scene.animationGroups[0].name;
-        currentAnimation = scene.animationGroups[0];
+                    hideLoadingView();
+                } catch (error) {
+                    console.error("Error processing model:", error);
+                    hideLoadingView();
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading model:", error);
+                hideLoadingView();
+            });
+    } catch (error) {
+        console.error("Critical error in importModel:", error);
         hideLoadingView();
- 
-    });
+    }
 }
 
 // Random Number
@@ -201,18 +275,46 @@ function* animationBlending(fromAnim, fromAnimSpeedRatio, toAnim, toAnimSpeedRat
 }
 
 // Environment Lighting
-function setLighting() {
-    hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("resources/env/environment_19.env", scene);
-    hdrTexture.rotationY = BABYLON.Tools.ToRadians(hdrRotation);
-    hdrSkybox = BABYLON.MeshBuilder.CreateBox("skybox", {size: 1024}, scene);
-    var hdrSkyboxMaterial = new BABYLON.PBRMaterial("skybox", scene);
-    hdrSkyboxMaterial.backFaceCulling = false;
-    hdrSkyboxMaterial.reflectionTexture = hdrTexture.clone();
-    hdrSkyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-    hdrSkyboxMaterial.microSurface = 0.4;
-    hdrSkyboxMaterial.disableLighting = true;
-    hdrSkybox.material = hdrSkyboxMaterial;
-    hdrSkybox.infiniteDistance = true;
+async function loadEnvironment() {
+    return new Promise((resolve, reject) => {
+        try {
+            // Use default environment texture
+            hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+                "https://assets.babylonjs.com/environments/environmentSpecular.dds",
+                scene
+            );
+
+            hdrTexture.onLoadObservable.addOnce(() => {
+                try {
+                    hdrTexture.rotationY = BABYLON.Tools.ToRadians(hdrRotation);
+                    
+                    // Create skybox
+                    hdrSkybox = BABYLON.MeshBuilder.CreateBox("skybox", {size: 1024}, scene);
+                    var hdrSkyboxMaterial = new BABYLON.PBRMaterial("skybox", scene);
+                    hdrSkyboxMaterial.backFaceCulling = false;
+                    hdrSkyboxMaterial.reflectionTexture = hdrTexture.clone();
+                    hdrSkyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+                    hdrSkyboxMaterial.microSurface = 0.4;
+                    hdrSkyboxMaterial.disableLighting = true;
+                    hdrSkybox.material = hdrSkyboxMaterial;
+                    hdrSkybox.infiniteDistance = true;
+                    
+                    resolve();
+                } catch (error) {
+                    console.error("Error creating skybox:", error);
+                    resolve(); // Continue even if skybox creation fails
+                }
+            });
+
+            hdrTexture.onLoadErrorObservable.addOnce((error) => {
+                console.error("Error loading environment texture:", error);
+                resolve(); // Continue without environment
+            });
+        } catch (error) {
+            console.error("Critical error in loadEnvironment:", error);
+            resolve(); // Continue without environment
+        }
+    });
 }
 
 // Set Shadows
