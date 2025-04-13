@@ -11,6 +11,20 @@ document.addEventListener("DOMContentLoaded", () => {
 // Global BabylonJS Variables
 let canvas, engine, scene, camera, dirLight, hemiLight, shadowGenerator, hdrSkybox;
 
+// Model Navigation Variables
+const modelList = [
+    "Allstate-Bear.glb",
+    "josh-kong.glb",
+    "JOSH.glb",
+    "moose.glb",
+    "Noble-Dog.glb",
+    "readyplayer.glb",
+    "readyplayer2.glb",
+    "scientiest.glb",
+    "tv-man.glb"
+];
+let currentModelIndex = modelList.indexOf("readyplayer2.glb"); // Start with current model
+
 function initBabylon() {
     canvas = document.getElementById("renderCanvas");
     engine = new BABYLON.Engine(canvas, true, { stencil: false }, true);
@@ -66,11 +80,11 @@ function startGame() {
 
     // Load environment first, then model
     loadEnvironment().then(() => {
-        importAnimationsAndModel("readyplayer2.glb");
+        importAnimationsAndModel(modelList[currentModelIndex]);
     }).catch(error => {
         console.error("Failed to load environment:", error);
         // Load model even if environment fails
-        importAnimationsAndModel("readyplayer2.glb");
+        importAnimationsAndModel(modelList[currentModelIndex]);
     });
 
     // scene.debugLayer.show({embedMode: true}).then(function () {
@@ -103,6 +117,9 @@ var animationsGLB = [];
 // Import Animations and Models
 async function importAnimationsAndModel(model) {
     try {
+        // Reset animations array
+        animationsGLB = [];
+        
         // Load base idle animation
         await importAnimations("/masculine/idle/M_Standing_Idle_Variations_002.glb").catch(error => {
             console.error("Error loading idle animation:", error);
@@ -115,6 +132,7 @@ async function importAnimationsAndModel(model) {
                 await importAnimations("/masculine/dance/M_Dances_00" + int + ".glb");
             } catch (error) {
                 console.error(`Error loading dance animation ${index + 1}:`, error);
+                continue; // Continue with next animation if one fails
             }
         }
 
@@ -125,6 +143,7 @@ async function importAnimationsAndModel(model) {
                 await importAnimations("/masculine/expression/M_Standing_Expressions_00" + int + ".glb");
             } catch (error) {
                 console.error(`Error loading expression animation ${index + 1}:`, error);
+                continue; // Continue with next animation if one fails
             }
         }
 
@@ -346,6 +365,53 @@ function setReflections() {
 // Hide Loading View
 function hideLoadingView() {
     document.getElementById("loadingDiv").style.display = "none";
+}
+
+// Model Navigation Functions
+async function changeModel(direction) {
+    // Show loading screen
+    document.getElementById("loadingDiv").style.display = "block";
+    
+    // Update model index
+    if (direction === 'next') {
+        currentModelIndex = (currentModelIndex + 1) % modelList.length;
+    } else {
+        currentModelIndex = (currentModelIndex - 1 + modelList.length) % modelList.length;
+    }
+
+    try {
+        // Dispose current model and animations
+        if (player) {
+            // Stop all animations
+            scene.animationGroups.slice().forEach(group => {
+                group.stop();
+                group.dispose();
+            });
+            
+            // Dispose the model and its children
+            player.getChildMeshes().forEach(mesh => {
+                if (mesh) {
+                    mesh.dispose();
+                }
+            });
+            player.dispose();
+        }
+
+        // Clear animation arrays and reset state
+        animationsGLB = [];
+        currentAnimation = null;
+
+        // Import new model with its animations
+        await importAnimationsAndModel(modelList[currentModelIndex]);
+        
+        // Update info text
+        if (scene.animationGroups && scene.animationGroups.length > 0) {
+            document.getElementById("info-text").innerHTML = "Current Animation<br>" + scene.animationGroups[0].name;
+        }
+    } catch (error) {
+        console.error("Error changing model:", error);
+        hideLoadingView();
+    }
 }
 
 // Resize Window

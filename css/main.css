@@ -128,3 +128,33 @@ html, body {
 #info-text {
     font-size: medium;
 }
+
+/* Model Navigation Buttons */
+.model-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.25);
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.model-nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+.model-nav-left {
+    left: 20px;
+}
+
+.model-nav-right {
+    right: 20px;
+}
