@@ -103,7 +103,7 @@ async function importAnimationsAndModel(model) {
 // Import Animations
 function importAnimations(animation) {
 
-    return BABYLON.SceneLoader.ImportMeshAsync(null, "./resources/models/animations/" + animation, null, scene)
+    return BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/animations" + animation, null, scene)
       .then((result) => {
         result.meshes.forEach(element => {
             if (element)
@@ -116,7 +116,7 @@ function importAnimations(animation) {
 // Import Model
 function importModel(model) {
 
-    BABYLON.SceneLoader.ImportMeshAsync(null, "./resources/models/" + model, null, scene)
+    BABYLON.SceneLoader.ImportMeshAsync(null, "resources/models/" + model, null, scene)
       .then((result) => {
 
         player = result.meshes[0];
@@ -202,7 +202,7 @@ function* animationBlending(fromAnim, fromAnimSpeedRatio, toAnim, toAnimSpeedRat
 
 // Environment Lighting
 function setLighting() {
-    hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./resources/env/environment_19.env", scene);
+    hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("resources/env/environment_19.env", scene);
     hdrTexture.rotationY = BABYLON.Tools.ToRadians(hdrRotation);
     hdrSkybox = BABYLON.MeshBuilder.CreateBox("skybox", {size: 1024}, scene);
     var hdrSkyboxMaterial = new BABYLON.PBRMaterial("skybox", scene);
