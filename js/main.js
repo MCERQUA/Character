@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Global BabylonJS Variables
-let canvas, engine, scene, camera, dirLight, hemiLight, shadowGenerator, hdrSkybox;
+let canvas, engine, scene, camera, dirLight, hemiLight, shadowGenerator;
 
 // Model Navigation Variables
 const modelList = [
@@ -44,7 +44,7 @@ var currentAnimation;
 // Create Scene
 function createScene(engine, canvas) {
     var scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color3(0, 0, 0);
+    scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
     return scene;
 }
 
@@ -71,10 +71,10 @@ function startGame() {
     ground.position.y = -0.1;
     ground.isPickable = false;
     var groundMat = new BABYLON.PBRMaterial("groundMaterial", scene);
-    groundMat.albedoColor = new BABYLON.Color3(0.95,0.95,0.95);
-    groundMat.roughness = 0.15;
-    groundMat.metallic = 0;
-    groundMat.specularIntensity = 0;
+    groundMat.albedoColor = new BABYLON.Color3(0,0,0);
+    groundMat.roughness = 0.8;
+    groundMat.metallic = 0.2;
+    groundMat.specularIntensity = 0.1;
     ground.material = groundMat;
     ground.receiveShadows = true;
 
@@ -307,17 +307,6 @@ async function loadEnvironment() {
                 try {
                     hdrTexture.rotationY = BABYLON.Tools.ToRadians(hdrRotation);
                     
-                    // Create skybox
-                    hdrSkybox = BABYLON.MeshBuilder.CreateBox("skybox", {size: 1024}, scene);
-                    var hdrSkyboxMaterial = new BABYLON.PBRMaterial("skybox", scene);
-                    hdrSkyboxMaterial.backFaceCulling = false;
-                    hdrSkyboxMaterial.reflectionTexture = hdrTexture.clone();
-                    hdrSkyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-                    hdrSkyboxMaterial.microSurface = 0.4;
-                    hdrSkyboxMaterial.disableLighting = true;
-                    hdrSkybox.material = hdrSkyboxMaterial;
-                    hdrSkybox.infiniteDistance = true;
-                    
                     resolve();
                 } catch (error) {
                     console.error("Error creating skybox:", error);
@@ -339,9 +328,7 @@ async function loadEnvironment() {
 // Set Shadows
 function setShadows() {
     scene.meshes.forEach(function(mesh) {
-        if (mesh.name != "skybox" 
-        && mesh.name != "ground")
-        {
+        if (mesh.name != "ground") {
             shadowGenerator.darkness = 0.1;
             shadowGenerator.bias = 0.00001;
             shadowGenerator.useBlurExponentialShadowMap = true;
@@ -353,12 +340,10 @@ function setShadows() {
 // Set Reflections
 function setReflections() {
     scene.materials.forEach(function (material) {
-        if (material.name != "skybox") {
-            material.reflectionTexture = hdrTexture;
-            material.reflectionTexture.level = 0.9;
-            material.environmentIntensity = 0.7;
-            material.disableLighting = false;
-        }
+        material.reflectionTexture = hdrTexture;
+        material.reflectionTexture.level = 0.9;
+        material.environmentIntensity = 0.7;
+        material.disableLighting = false;
     });
 }
 
