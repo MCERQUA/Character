@@ -1,9 +1,13 @@
-// Using global BABYLON from CDN script
+import * as BABYLON from 'babylonjs';
+import 'babylonjs-loaders';
+import 'pepjs';
+
+// Make functions global for onclick handlers
+window.randomAnimation = randomAnimation;
+window.changeModel = changeModel;
 
 // On Document Loaded - Initialize Babylon then Start Game //
-const BABYLON = window.BABYLON;
-
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", () => {
     initBabylon();
     startGame();
 });
@@ -121,7 +125,7 @@ async function importAnimationsAndModel(model) {
         animationsGLB = [];
         
         // Load base idle animation
-        await importAnimations("/masculine/idle/M_Standing_Idle_Variations_002.glb").catch(error => {
+        await importAnimations("/resources/models/animations/masculine/idle/M_Standing_Idle_Variations_002.glb").catch(error => {
             console.error("Error loading idle animation:", error);
         });
 
@@ -129,7 +133,7 @@ async function importAnimationsAndModel(model) {
         for (let index = 0; index < 9; index++) {
             try {
                 const int = index + 1;
-                await importAnimations("/masculine/dance/M_Dances_00" + int + ".glb");
+                await importAnimations("/resources/models/animations/masculine/dance/M_Dances_00" + int + ".glb");
             } catch (error) {
                 console.error(`Error loading dance animation ${index + 1}:`, error);
                 continue; // Continue with next animation if one fails
@@ -140,7 +144,7 @@ async function importAnimationsAndModel(model) {
         for (let index = 5; index < 9; index++) {
             try {
                 const int = index + 1;
-                await importAnimations("/masculine/expression/M_Standing_Expressions_00" + int + ".glb");
+                await importAnimations("/resources/models/animations/masculine/expression/M_Standing_Expressions_00" + int + ".glb");
             } catch (error) {
                 console.error(`Error loading expression animation ${index + 1}:`, error);
                 continue; // Continue with next animation if one fails
@@ -158,7 +162,7 @@ async function importAnimationsAndModel(model) {
 // Import Animations
 async function importAnimations(animation) {
     try {
-        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "./resources/models/animations" + animation, null, scene);
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "." + animation, null, scene);
         
         // Clean up meshes
         result.meshes.forEach(element => {
